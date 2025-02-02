@@ -22,6 +22,8 @@ class Engine:
                 continue
 
             action.perform(self, self.player)
+            for entity in self.entities:
+                entity.hostile()
             
     def render(self, console: Console, context: Context) -> None:
         self.game_map.render(console)

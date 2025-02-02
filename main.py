@@ -5,7 +5,7 @@ from scripts.entity.entity import Entity
 from scripts.map.game_map import GameMap
 
 def main() -> None:
-    screen_width = 80
+    screen_width = 85
     screen_height = 50
 
     map_width = 80
@@ -17,13 +17,15 @@ def main() -> None:
 
     event_handler = EventHandler()
 
-    player = Entity(int(screen_width / 2), int(screen_height / 2), "@", (255, 255, 255))
-    npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), "@", (255, 255, 0))
+    player = Entity(int(map_width / 2), int(map_height / 2), "@", (255, 255, 255), True)
+    npc = Entity(int(0), int(0), "E", (0, 255, 0), False)
     entities = {npc, player}
 
     game_map = GameMap(map_width, map_height)
 
     engine = Engine(entities=entities, event_handler=event_handler, game_map=game_map, player=player)
+    player.engine = engine
+    npc.engine = engine
 
     with tcod.context.new_terminal(
         screen_width,
