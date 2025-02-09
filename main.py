@@ -3,6 +3,8 @@ from scripts.engine import Engine
 from scripts.player.input_handlers import EventHandler
 from scripts.entity.entity import Entity
 from scripts.map.game_map import GameMap
+from scripts.entity import stats
+from scripts import equipment
 
 def main() -> None:
     screen_width = 85
@@ -17,8 +19,8 @@ def main() -> None:
 
     event_handler = EventHandler()
 
-    player = Entity(int(map_width / 2), int(map_height / 2), "@", (255, 255, 255), True)
-    npc = Entity(int(0), int(0), "E", (0, 255, 0), False)
+    player = Entity(int(map_width / 2), int(map_height / 2), "@", "player", (255, 255, 255), True, stats.base_player)
+    npc = Entity(int(0), int(0), "E", "enemy", (0, 255, 0), False, stats.enemy)
     entities = {npc, player}
 
     game_map = GameMap(map_width, map_height)
@@ -26,6 +28,10 @@ def main() -> None:
     engine = Engine(entities=entities, event_handler=event_handler, game_map=game_map, player=player)
     player.engine = engine
     npc.engine = engine
+
+    #testing equipment
+    player.equip_item(equipment.r_pouch)
+    player.print_stats()
 
     with tcod.context.new_terminal(
         screen_width,
@@ -40,6 +46,9 @@ def main() -> None:
 
             events = tcod.event.wait()
             
+            engine.entities = [entity for entity in engine.entities if entity.alive]
+            if not player.alive:
+                raise SystemExit()
             engine.handle_events(events)
 
 
