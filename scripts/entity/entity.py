@@ -5,6 +5,7 @@ import random
 from scripts.entity.stats import Stats
 from scripts.equipment import Equipment
 from scripts import equipment
+import tcod
 
 if TYPE_CHECKING:
     from scripts.engine import Engine
@@ -108,3 +109,50 @@ class Entity:
 
     def print_stats(self):
         print(", ".join(f"{key}: {value}" for key, value in vars(self.stats).items() if isinstance(value, int)))
+
+    def ranged_attack(self, target_x: int, target_y: int):
+        """Perform a ranged attack at a specific tile."""
+        max_distance = self.stats.max_distance
+
+        if self.distance_to_tile(target_x, target_y) > max_distance:
+            print("Target is out of range!")
+            return
+        
+        if not self.has_line_of_sight(target_x, target_y):
+            print("No clear line of sight!")
+            return
+        
+        print(f"{self.name} fires at ({target_x}, {target_y})!")
+
+        # Apply damage to entities in the target area
+        self.apply_aoe_damage(target_x, target_y)
+
+    def apply_aoe_damage(self, target_x: int, target_y: int):
+        """Applies damage to all enemies within the AOE radius."""
+        aoe_radius = self.stats.aoe
+
+        for entity in self.engine.entities:
+            if not entity.pc and entity.alive:  # Only damage enemies
+                if self.distance_to_tile(entity.x, entity.y, target_x, target_y) <= aoe_radius:
+                    damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
+                    entity.take_damage(damage)
+                    print(f"{entity.name} takes {damage} damage!")
+
+    def distance_to_tile(self, tile_x: int, tile_y: int, origin_x=None, origin_y=None) -> float:
+        """Calculate distance from a tile (or entity) to another tile."""
+        if origin_x is None: origin_x = self.x
+        if origin_y is None: origin_y = self.y
+        dx = tile_x - origin_x
+        dy = tile_y - origin_y
+        return math.sqrt(dx ** 2 + dy ** 2)
+
+    def has_line_of_sight(self, target_x: int, target_y: int) -> bool:
+        """Check if there's an unobstructed line of sight (LOS) to a tile."""
+        line = list(tcod.los.bresenham((self.x, self.y), (target_x, target_y)))
+
+        # Ensure all tiles between player and target are walkable
+        for x, y in line[1:-1]:  # Exclude the first (self) and last (target) positions
+            if not self.engine.game_map.tiles["walkable"][x, y]:
+                return False  # LOS is blocked
+
+        return True  # LOS is clear
