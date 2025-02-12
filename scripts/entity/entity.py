@@ -93,9 +93,10 @@ class Entity:
                 return
             
     def hostile_attack(self):
-        player = self.engine.player
-        damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
-        player.take_damage(damage)
+        if self.alive:
+            player = self.engine.player
+            damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
+            player.take_damage(damage)
 
     def take_damage(self, amount: int):
         self.stats.hp -= amount

@@ -38,14 +38,8 @@ class MovementAction(Action):
         entity.move(self.dx, self.dy)
 
 class AttackAction(Action):
-    def __init__(self, target_x: int, target_y: int):
-        super().__init__()
-
-        self.target_x = target_x
-        self.target_y = target_y
-
     def perform(self, engine: Engine, entity: Entity) -> None:
-        entity.ranged_attack(self.target_x, self.target_y)  # Call ranged attack
+        pass
 
 class TargetingAction(Action):
     def __init__(self, max_distance: int):
@@ -69,11 +63,9 @@ class TargetingAction(Action):
 
                 # Cancel targeting if Escape is pressed
                 if isinstance(action, EscapeAction):
-                    return engine.player.ranged_attack(cursor_x, cursor_y)  # Call attack
                     return None
                 # Confirm selection when Space is pressed
-                if key == tcod.event.KeySym.SPACE or key == tcod.event.KeySym.RETURN: # need to hook up the AttackAction here
-                    print("hello1")
+                if isinstance(action, AttackAction):
                     return engine.player.ranged_attack(cursor_x, cursor_y)  # Call attack
                 # Move cursor
                 elif key == tcod.event.KeySym.KP_8:

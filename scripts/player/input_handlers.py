@@ -5,7 +5,7 @@ import tcod.event
 if TYPE_CHECKING:
     from scripts.engine import Engine
 
-from scripts.player.actions import Action, EscapeAction, MovementAction, TargetingAction
+from scripts.player.actions import Action, EscapeAction, MovementAction, TargetingAction, AttackAction
 
 class EventHandler(tcod.event.EventDispatch[Action]):
     def __init__(self, engine: Engine):
@@ -39,8 +39,8 @@ class EventHandler(tcod.event.EventDispatch[Action]):
         elif key == tcod.event.KeySym.f:
             action = TargetingAction(self.engine.player.stats.max_distance)
         
-        # elif key == tcod.event.KeySym.SPACE:
-        #     action = AttackAction()
+        elif key == tcod.event.KeySym.SPACE:
+            action = AttackAction()
 
         elif key == tcod.event.KeySym.ESCAPE:
             action = EscapeAction()
