@@ -43,13 +43,13 @@ class Entity:
 
     def equip_item(self, equipped: Equipment):
         self.equipment = equipped
-        self.stats.basepow += equipped.basepow
-        self.stats.addpow += equipped.addpow
-        self.stats.slots += equipped.slots
-        self.stats.max_charges += equipped.max_charges
-        self.stats.effect_duration += equipped.effect_duration
-        self.stats.max_distance += equipped.max_distance
-        self.stats.aoe += equipped.aoe
+        self.stats.basepow = equipped.basepow
+        self.stats.addpow = equipped.addpow
+        self.stats.slots = equipped.slots
+        self.stats.max_charges = equipped.max_charges
+        self.stats.effect_duration = equipped.effect_duration
+        self.stats.max_distance = equipped.max_distance
+        self.stats.aoe = equipped.aoe
 
 
     def hostile(self) -> None:
@@ -113,6 +113,8 @@ class Entity:
 
     def ranged_attack(self, target_x: int, target_y: int):
         """Perform a ranged attack at a specific tile."""
+        if self.equipment.charges == 0:
+            return None
         max_distance = self.stats.max_distance
 
         if self.distance_to_tile(target_x, target_y) > max_distance:
@@ -127,6 +129,8 @@ class Entity:
 
         # Apply damage to entities in the target area
         self.apply_aoe_damage(target_x, target_y)
+        self.equipment.charges -= 1
+        print(self.equipment.charges)
 
     def apply_aoe_damage(self, target_x: int, target_y: int):
         """Applies damage to all enemies within the AOE radius."""

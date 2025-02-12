@@ -12,6 +12,7 @@ class Equipment:
         self.addpow = addpow
         self.slots = slots
         self.max_charges = max_charges
+        self.charges = max_charges
         self.effect_duration = effect_duration
         self.max_distance = max_distance
         self.aoe = aoe
