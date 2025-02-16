@@ -6,6 +6,9 @@ from scripts.map.game_map import GameMap
 from scripts.entity import stats
 from scripts import equipment
 from scripts import engine as dimensions
+import random
+
+from typing import TYPE_CHECKING
 
 def main() -> None:
     # screen_width = 85
@@ -21,8 +24,11 @@ def main() -> None:
     root_console = tcod.console.Console(dimensions.screen_width, dimensions.screen_height, order="F")  # Root console initialization
 
     player = Entity(int(map_width / 2), int(map_height / 2), "@", "player", (255, 255, 255), True, stats.base_player)
-    npc = Entity(int(0), int(0), "E", "enemy", (0, 255, 0), False, stats.enemy)
-    entities = {npc, player}
+    enemy1_stats = stats.enemy.copy()
+    enemy2_stats = stats.enemy.copy()
+    npc1 = Entity(random.randint(0, map_width), random.randint(0, map_height), "E", "enemy", (0, 255, 0), False, enemy1_stats)
+    npc2 = Entity(random.randint(0, map_width), random.randint(0, map_height), "E", "enemy", (0, 255, 0), False, enemy2_stats)
+    entities = {npc1, npc2, player}
 
     game_map = GameMap(map_width, map_height)
 
@@ -30,7 +36,8 @@ def main() -> None:
     event_handler = EventHandler(engine)
     engine.event_handler = event_handler
     player.engine = engine
-    npc.engine = engine
+    npc1.engine = engine
+    npc2.engine = engine
 
     #testing equipment
     runepouch = equipment.r_pouch

@@ -6,6 +6,8 @@ from scripts.entity.stats import Stats
 from scripts.equipment import Equipment
 from scripts import equipment
 import tcod
+import tcod.los
+import time
 
 if TYPE_CHECKING:
     from scripts.engine import Engine
@@ -43,10 +45,15 @@ class Entity:
 
     def equip_item(self, equipped: Equipment):
         self.equipment = equipped
+        if self.stats.hp > self.stats.max_hp:
+            self.stats.hp = self.stats.max_hp
         self.stats.basepow = equipped.basepow
         self.stats.addpow = equipped.addpow
         self.stats.slots = equipped.slots
         self.stats.max_charges = equipped.max_charges
+        self.stats.charges = equipped.charges
+        if self.stats.charges > self.stats.max_charges:
+            self.stats.charges = self.stats.max_charges
         self.stats.effect_duration = equipped.effect_duration
         self.stats.max_distance = equipped.max_distance
         self.stats.aoe = equipped.aoe
@@ -54,6 +61,9 @@ class Entity:
 
     def hostile(self) -> None:
         player = self.engine.player
+        if not self.alive:
+            self.char = "+"
+            self.color = [90, 20, 20]
         if not self.pc:
             # Get player and enemy positions
             dx = player.x - self.x
@@ -113,7 +123,7 @@ class Entity:
 
     def ranged_attack(self, target_x: int, target_y: int):
         """Perform a ranged attack at a specific tile."""
-        if self.equipment.charges == 0:
+        if self.equipment.charges <= 0:
             return None
         max_distance = self.stats.max_distance
 
@@ -126,6 +136,15 @@ class Entity:
             return
         
         print(f"{self.name} fires at ({target_x}, {target_y})!")
+        # Animate a projectile moving toward the target
+        line = list(tcod.los.bresenham((self.x, self.y), (target_x, target_y)))
+        
+        for x, y in line[1:]:  # Skip starting position
+            self.engine.console.print(x, y, "*", fg=(255, 255, 0))  # Yellow projectile
+            self.engine.context.present(self.engine.console)
+            time.sleep(0.05)  # Short delay for animation
+            self.engine.console.print(x, y, " ")  # Erase previous frame
+            self.engine.context.present(self.engine.console)
 
         # Apply damage to entities in the target area
         self.apply_aoe_damage(target_x, target_y)
@@ -135,6 +154,7 @@ class Entity:
     def apply_aoe_damage(self, target_x: int, target_y: int):
         """Applies damage to all enemies within the AOE radius."""
         aoe_radius = self.stats.aoe
+        affected_tiles = []
 
         for entity in self.engine.entities:
             if not entity.pc and entity.alive:  # Only damage enemies
@@ -142,6 +162,27 @@ class Entity:
                     damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
                     entity.take_damage(damage)
                     print(f"{entity.name} takes {damage} damage!")
+
+        # Gather affected tiles
+        for x in range(self.engine.game_map.width):
+            for y in range(self.engine.game_map.height):
+                if self.distance_to_tile(x, y, target_x, target_y) <= aoe_radius:
+                    affected_tiles.append((x, y))
+
+        # Flash all affected tiles
+        for _ in range(3):  # Repeat flash 3 times
+            for x, y in affected_tiles:
+                self.engine.console.bg[x, y] = (100, 50, 220)  # magic 'splosion
+            self.engine.context.present(self.engine.console)
+            time.sleep(0.05)
+
+            self.attack_sparks(target_x, target_y)
+
+            for x, y in affected_tiles:
+                self.engine.console.bg[x, y] = (0, 0, 0)  # Reset
+            self.engine.context.present(self.engine.console)
+            time.sleep(0.05)
+
 
     def distance_to_tile(self, tile_x: int, tile_y: int, origin_x=None, origin_y=None) -> float:
         """Calculate distance from a tile (or entity) to another tile."""
@@ -161,3 +202,30 @@ class Entity:
                 return False  # LOS is blocked
 
         return True  # LOS is clear
+    
+
+    def attack_sparks(self, target_x: int, target_y: int):
+        """Show a brief hit spark effect on impact."""
+        spark_chars = ["*", "!", "#", "+"]
+        aoe = self.engine.player.stats.aoe
+
+        for _ in range(1):  # Repeat animation 3 times
+            for _ in range(random.randint(6, 12)):  # Spawn 6-12 sparks
+                while True:
+                    offset_x = random.randint(-aoe, aoe)
+                    offset_y = random.randint(-aoe, aoe)
+
+                    if offset_x ** 2 + offset_y ** 2 <= aoe ** 2:
+                        break
+                char = random.choice(spark_chars)
+
+                # Ensure spark is inside map bounds
+                spark_x = target_x + offset_x
+                spark_y = target_y + offset_y
+                if 0 <= spark_x < self.engine.game_map.width and 0 <= spark_y < self.engine.game_map.height:
+                    self.engine.console.print(spark_x, spark_y, char, fg=(200, 10, 140))
+
+            self.engine.context.present(self.engine.console)
+            time.sleep(0.05)  # Short delay to animate
+
+
