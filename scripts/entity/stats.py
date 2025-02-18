@@ -29,6 +29,6 @@ class Stats:
             self.max_charges, self.charges, self.effect_duration, self.max_distance, self.aoe
         )
 
-base_player = Stats(max_hp=50, hp=50, basepow=0, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=0, aoe=0)
+base_player = Stats(max_hp=10, hp=10, basepow=0, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=0, aoe=0)
 
-enemy = Stats(max_hp=50, hp=50, basepow=20, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=0, aoe=0)
+enemy = Stats(max_hp=50, hp=50, basepow=5, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=0, aoe=0)

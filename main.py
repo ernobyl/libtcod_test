@@ -24,11 +24,7 @@ def main() -> None:
     root_console = tcod.console.Console(dimensions.screen_width, dimensions.screen_height, order="F")  # Root console initialization
 
     player = Entity(int(map_width / 2), int(map_height / 2), "@", "player", (255, 255, 255), True, stats.base_player)
-    enemy1_stats = stats.enemy.copy()
-    enemy2_stats = stats.enemy.copy()
-    npc1 = Entity(random.randint(0, map_width), random.randint(0, map_height), "E", "enemy", (0, 255, 0), False, enemy1_stats)
-    npc2 = Entity(random.randint(0, map_width), random.randint(0, map_height), "E", "enemy", (0, 255, 0), False, enemy2_stats)
-    entities = {npc1, npc2, player}
+    entities = [player]
 
     game_map = GameMap(map_width, map_height)
 
@@ -36,8 +32,7 @@ def main() -> None:
     event_handler = EventHandler(engine)
     engine.event_handler = event_handler
     player.engine = engine
-    npc1.engine = engine
-    npc2.engine = engine
+    engine.spawn_entities(2)
 
     #testing equipment
     runepouch = equipment.r_pouch

@@ -58,8 +58,24 @@ class Entity:
         self.stats.max_distance = equipped.max_distance
         self.stats.aoe = equipped.aoe
 
+    def update_equipped(self):
+        if self.engine.player.stats.hp > self.engine.player.stats.max_hp:
+            self.engine.player.stats.hp = self.engine.player.stats.max_hp
+        self.engine.player.stats.basepow = self.engine.player.equipment.basepow
+        self.engine.player.stats.addpow = self.engine.player.equipment.addpow
+        self.engine.player.stats.slots = self.engine.player.equipment.slots
+        self.engine.player.stats.max_charges = self.engine.player.equipment.max_charges
+        if self.engine.player.equipment.charges > self.engine.player.equipment.max_charges:
+            self.engine.player.equipment.charges = self.engine.player.equipment.max_charges
+        self.engine.player.stats.charges = self.engine.player.equipment.charges
+        self.engine.player.stats.effect_duration = self.engine.player.equipment.effect_duration
+        self.engine.player.stats.max_distance = self.engine.player.equipment.max_distance
+        self.engine.player.stats.aoe = self.engine.player.equipment.aoe
+
 
     def hostile(self) -> None:
+        if self.engine.stats_panel.visible:
+            return None
         player = self.engine.player
         if not self.alive:
             self.char = "+"
@@ -77,7 +93,9 @@ class Entity:
 
             next_x = self.x + dx
             next_y = self.y + dy
-            if player.x == next_x and player.y == next_y:  # Attack player instead of moving
+            if any(entity for entity in self.engine.entities if entity.x == next_x and entity.y == next_y and not entity.pc and entity.alive):
+                self.find_alternative_move()  # Find another way
+            elif player.x == next_x and player.y == next_y:  # Attack player instead of moving
                 self.hostile_attack()
             elif self.engine.game_map.tiles["walkable"][next_x, next_y]:  # Move normally
                 self.move(dx, dy)
@@ -88,17 +106,19 @@ class Entity:
         """Finds an alternative move if the direct path is blocked."""
         possible_moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-        # Shuffle to add some randomness (avoids predictable movement)
-        random.shuffle(possible_moves)
+        # Sort moves by closeness to the player
+        possible_moves.sort(key=lambda move: math.sqrt((self.x + move[0] - self.engine.player.x) ** 2 + 
+                                                    (self.y + move[1] - self.engine.player.y) ** 2))
 
         for dx, dy in possible_moves:
             next_x, next_y = self.x + dx, self.y + dy
 
-            if (
-                0 <= next_x < self.engine.game_map.width  # Check map bounds
+            # Ensure the move is within bounds, walkable, and not occupied
+            if (0 <= next_x < self.engine.game_map.width
                 and 0 <= next_y < self.engine.game_map.height
                 and self.engine.game_map.tiles["walkable"][next_x, next_y]
-            ):
+                and not any(entity for entity in self.engine.entities if entity.x == next_x and entity.y == next_y and not entity.pc and entity.alive)):
+                
                 self.move(dx, dy)  # Move to the first valid alternative
                 return
             
@@ -123,7 +143,7 @@ class Entity:
 
     def ranged_attack(self, target_x: int, target_y: int):
         """Perform a ranged attack at a specific tile."""
-        if self.equipment.charges <= 0:
+        if self.engine.player.equipment.charges <= 0:
             return None
         max_distance = self.stats.max_distance
 
@@ -148,8 +168,8 @@ class Entity:
 
         # Apply damage to entities in the target area
         self.apply_aoe_damage(target_x, target_y)
-        self.equipment.charges -= 1
-        print(self.equipment.charges)
+        self.engine.player.equipment.charges -= 1
+        print(self.engine.player.equipment.charges)
 
     def apply_aoe_damage(self, target_x: int, target_y: int):
         """Applies damage to all enemies within the AOE radius."""

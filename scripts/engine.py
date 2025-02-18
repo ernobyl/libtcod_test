@@ -7,12 +7,14 @@ import tcod
 from scripts.entity.entity import Entity
 from scripts.map.game_map import GameMap
 from scripts.player.input_handlers import EventHandler
+from scripts.entity import stats
+import random
 
 screen_width = 85
 screen_height = 50
 
 class Engine:
-    def __init__(self, console: Console, entities: Set[Entity], event_handler: EventHandler,
+    def __init__(self, console: Console, entities: list[Entity], event_handler: EventHandler,
                  game_map: GameMap, player: Entity, context: Optional[tcod.context.Context] = None
                  ):
         self.console = console
@@ -23,6 +25,19 @@ class Engine:
         self.context = context  # Store the context here
         self.stats_panel = StatsPanel(30, 16)
 
+    def spawn_entities(self, num_enemies: int):
+        """Spawn a set number of enemies randomly on the map."""
+        for _ in range(num_enemies):
+            enemy_stats = stats.enemy.copy()  # Ensure unique stats per enemy
+            npc = Entity(
+                random.randint(0, self.game_map.width - 1),
+                random.randint(0, self.game_map.height - 1),
+                "E", "enemy", (0, 255, 0), False, enemy_stats
+            )
+            npc.engine = self  # Link entity to engine
+            self.entities.append(npc)  # Add enemy to game
+
+    level = 1
     def handle_events(self, events: Iterable[Any]) -> None:
         for event in events:
             action = self.event_handler.dispatch(event)
@@ -31,8 +46,13 @@ class Engine:
                 continue
 
             action.perform(self, self.player)
-            for entity in self.entities:
+            for entity in self.entities.copy():
                 entity.hostile()
+
+        if not any(entity for entity in self.entities if not entity.pc and entity.alive):
+            self.level += 1
+            print(f"You sure SLAMMED them! Moving on to level {self.level}.")
+            self.levelup()
             
     def render(self, context: tcod.context.Context) -> None:
 
@@ -48,6 +68,25 @@ class Engine:
             context.present(self.console)
 
         self.console.clear()
+
+    entity_count = 2
+    def levelup(self):
+        self.player.stats.max_hp += 5
+        self.player.stats.hp += int(self.player.stats.max_hp / 100 * 50)
+        self.player.equipment.charges += int(self.player.equipment.max_charges / 100 * 75)
+        self.player.update_equipped()
+        self.stats_panel.toggle()
+        while self.stats_panel.visible:
+            self.render(self.context)  # Keep rendering the screen
+            events = tcod.event.wait()  # Wait for player input
+            for event in events:
+                action = self.event_handler.dispatch(event)  # Process input
+
+                if action:
+                    action.perform(self, self.player)
+        self.entity_count += 1
+        self.spawn_entities(self.entity_count)
+
 
 class StatsPanel:
     """A panel for displaying and modifying stats."""
@@ -78,8 +117,10 @@ class StatsPanel:
         # Example stat display with selection cursor
         for index, item in enumerate(self.menu_items):
             cursor = ">" if index == self.selected_index else " "  # Add cursor to selected item
-            if item == "hp" or item == "basepow" or item == "charges":
+            if item == "hp" or item == "basepow":
                 self.panel.print(3, 2 + index, f"{cursor} {item}: {getattr(engine.player.stats, item.lower())}", fg=(255, 155, 155))
+            elif item == "charges":
+                self.panel.print(3, 2 + index, f"{cursor} {item}: {getattr(engine.player.equipment, item.lower())}", fg=(255, 155, 155))
             elif item == "addpow":
                 self.panel.print(2, 2 + index, f"{cursor} {item}: {getattr(engine.player.stats, item.lower())} %", fg=(255, 255, 255))
             else:
@@ -92,4 +133,5 @@ class StatsPanel:
 
         # copy panel's content directly to engine console
         engine.console.rgb[10:10+self.width, 5:5+self.height] = self.panel.rgb[:]
+
 

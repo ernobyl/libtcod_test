@@ -59,7 +59,7 @@ class StatsAllocationAction(Action):
             if hasattr(equipped_stats, selected_stat) and (selected_stat != "hp" and selected_stat != "basepow" and selected_stat != "charges"):  # Ensure the stat exists
                 setattr(equipped_stats, selected_stat, getattr(equipped_stats, selected_stat) + 1)
                 player_stats.max_hp -= 1  # Reduce allocation pool
-                engine.player.equip_item(engine.player.equipment)
+                engine.player.update_equipped()
                 engine.player.print_stats()
 
                 print(f"Allocated 1 point to {selected_stat}. New {selected_stat}: {getattr(player_stats, selected_stat)}")
@@ -87,7 +87,7 @@ class StatsDeallocationAction(Action):
                 setattr(equipped_stats, selected_stat, stat_value - 1)  # Reduce stat
                 player_stats.max_hp += 1  # Increase allocation pool
 
-                engine.player.equip_item(engine.player.equipment)  # Reapply equipment stats
+                engine.player.update_equipped()  # Reapply equipment stats
                 engine.player.print_stats()  # Print new stats for debugging
 
                 print(f"Deallocated 1 point from {selected_stat}. New {selected_stat}: {stat_value - 1}")
@@ -136,7 +136,14 @@ class TargetingAction(Action):
                     cursor_x -= 1
                 elif key == tcod.event.KeySym.KP_6:
                     cursor_x += 1
-                
+                elif key == tcod.event.KeySym.KP_7:
+                    cursor_x -= 1; cursor_y -= 1
+                elif key == tcod.event.KeySym.KP_9:
+                    cursor_x += 1; cursor_y -= 1
+                elif key == tcod.event.KeySym.KP_1:
+                    cursor_x -= 1; cursor_y += 1
+                elif key == tcod.event.KeySym.KP_3:
+                    cursor_x += 1; cursor_y += 1
                 # Ensure cursor stays within valid range
                 if entity.distance_to_tile(cursor_x, cursor_y) > self.max_distance:
                     cursor_x, cursor_y = prev_x, prev_y  # prevent going out of range

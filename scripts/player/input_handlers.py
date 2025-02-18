@@ -20,6 +20,7 @@ class EventHandler(tcod.event.EventDispatch[Action]):
         key = event.sym
 
         if self.engine.stats_panel.visible:
+
             if key == tcod.event.KeySym.KP_8:
                 self.engine.stats_panel.selected_index -= 1
                 if self.engine.stats_panel.selected_index < 0:
@@ -28,10 +29,11 @@ class EventHandler(tcod.event.EventDispatch[Action]):
                 self.engine.stats_panel.selected_index += 1
                 if self.engine.stats_panel.selected_index >= len(self.engine.stats_panel.menu_items):
                     self.engine.stats_panel.selected_index = 0  # Wrap around
-            elif key == tcod.event.KeySym.KP_PLUS:
-                action = StatsAllocationAction()
-            elif key == tcod.event.KeySym.KP_MINUS:
-                action = StatsDeallocationAction()
+            if not any(entity for entity in self.engine.entities if not entity.pc and entity.alive):
+                if key == tcod.event.KeySym.KP_PLUS:
+                    action = StatsAllocationAction()
+                elif key == tcod.event.KeySym.KP_MINUS:
+                    action = StatsDeallocationAction()
         else:
             if key == tcod.event.KeySym.KP_7:
                 action = MovementAction(dx=-1, dy=-1)
