@@ -8,6 +8,12 @@ from scripts import equipment
 import tcod
 import tcod.los
 import time
+from enum import Enum
+
+class EnemyType(Enum):
+    MELEE = "melee"
+    RANGED = "ranged"
+    SUPPORT = "support"
 
 if TYPE_CHECKING:
     from scripts.engine import Engine
@@ -26,7 +32,8 @@ class Entity:
                 stats: Stats,
                 equipment: Optional[Equipment] = None,
                 alive: bool = True,
-                engine: Optional[Engine] = None):
+                engine: Optional[Engine] = None,
+                type: Optional[EnemyType] = None):
         self.x = x
         self.y = y
         self.char = char
@@ -37,6 +44,7 @@ class Entity:
         self.equipment = equipment
         self.alive = alive
         self.engine = engine
+        self.type = type
 
     def move(self, dx: int, dy: int) -> None:
         # Move the entity by given amount
@@ -76,31 +84,63 @@ class Entity:
     def hostile(self) -> None:
         if self.engine.stats_panel.visible:
             return None
-        player = self.engine.player
         if not self.alive:
             self.char = "+"
             self.color = [90, 20, 20]
         if not self.pc:
-            # Get player and enemy positions
-            dx = player.x - self.x
-            dy = player.y - self.y
+            if self.type == EnemyType.MELEE:
+                self.hostile_melee()
+            elif self.type == EnemyType.RANGED:
+                self.hostile_ranged()
 
-            # Normalize direction
-            distance = math.sqrt(dx ** 2 + dy ** 2)
-            if distance > 0:  # Avoid division by zero
-                dx = round(dx / distance)
-                dy = round(dy / distance)
+    def hostile_melee(self) -> None:
+        player = self.engine.player
+        # Get player and enemy positions
+        dx = player.x - self.x
+        dy = player.y - self.y
 
-            next_x = self.x + dx
-            next_y = self.y + dy
-            if any(entity for entity in self.engine.entities if entity.x == next_x and entity.y == next_y and not entity.pc and entity.alive):
-                self.find_alternative_move()  # Find another way
-            elif player.x == next_x and player.y == next_y:  # Attack player instead of moving
-                self.hostile_attack()
-            elif self.engine.game_map.tiles["walkable"][next_x, next_y]:  # Move normally
-                self.move(dx, dy)
-            else:
-                self.find_alternative_move()  # Find another way
+        # Normalize direction
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+        if distance > 0:  # Avoid division by zero
+            dx = round(dx / distance)
+            dy = round(dy / distance)
+
+        next_x = self.x + dx
+        next_y = self.y + dy
+        if any(entity for entity in self.engine.entities if entity.x == next_x and entity.y == next_y and not entity.pc and entity.alive):
+            self.find_alternative_move()  # Find another way
+        elif player.x == next_x and player.y == next_y:  # Attack player instead of moving
+            self.hostile_attack()
+        elif self.engine.game_map.tiles["walkable"][next_x, next_y]:  # Move normally
+            self.move(dx, dy)
+        else:
+            self.find_alternative_move()  # Find another way
+
+    def hostile_ranged(self) -> None:
+        player = self.engine.player
+        # Get player and enemy positions
+        dx = player.x - self.x
+        dy = player.y - self.y
+
+        # Normalize direction
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+        if distance > 0:  # Avoid division by zero
+            dx = round(dx / distance)
+            dy = round(dy / distance)
+
+        if distance <= self.stats.max_distance and self.has_line_of_sight(player.x, player.y):
+            self.hostile_ranged_attack(target_x=player.x, target_y=player.y)
+            return None
+        
+        next_x = self.x + dx
+        next_y = self.y + dy
+
+        if any(entity for entity in self.engine.entities if entity.x == next_x and entity.y == next_y and not entity.pc and entity.alive):
+            self.find_alternative_move()  # Find another way
+        elif self.engine.game_map.tiles["walkable"][next_x, next_y]:  # Move normally
+            self.move(dx, dy)
+        else:
+            self.find_alternative_move()  # Find another way
 
     def find_alternative_move(self):
         """Finds an alternative move if the direct path is blocked."""
@@ -127,6 +167,43 @@ class Entity:
             player = self.engine.player
             damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
             player.take_damage(damage)
+
+    def hostile_ranged_attack(self, target_x: int, target_y: int):
+        if self.alive:
+            player = self.engine.player
+            damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
+
+            # Create a temporary console for animations
+            effect_console = tcod.console.Console(self.engine.console.width, self.engine.console.height, order="F")
+
+            # Generate projectile path
+            line = list(tcod.los.bresenham((self.x, self.y), (target_x, target_y)))
+
+            for x, y in line[1:]:  # Skip starting position
+                # Clear effect console (not the main console)
+                effect_console.clear()
+
+                # First, redraw the game map and entities onto effect_console
+                self.engine.game_map.render(effect_console)
+                for entity in self.engine.entities:
+                    effect_console.print(entity.x, entity.y, entity.char, fg=entity.color)
+
+                # Draw projectile on top of the existing map
+                effect_console.print(x, y, "x", fg=(0, 255, 155), bg=(0, 0, 0))  # Projectile color
+
+                # Blit the effect console onto the main console
+                effect_console.blit(self.engine.console)
+                self.engine.context.present(self.engine.console)
+
+                time.sleep(0.05)  # Short delay for animation
+
+            # Apply damage after the projectile reaches the target
+            player.take_damage(damage)
+
+            # Ensure the final frame is rendered correctly
+            self.engine.render(self.engine.context)
+
+
 
     def take_damage(self, amount: int):
         self.stats.hp -= amount

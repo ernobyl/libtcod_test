@@ -38,9 +38,6 @@ def main() -> None:
     runepouch = equipment.r_pouch
     player.equip_item(runepouch)
     player.print_stats()
-    runepouch.aoe += 3
-    player.equip_item(runepouch) # will maybe need to do an upgrade_equipment method later on
-    player.print_stats()
 
     with tcod.context.new_terminal(
         dimensions.screen_width,

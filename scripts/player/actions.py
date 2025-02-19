@@ -55,7 +55,7 @@ class StatsAllocationAction(Action):
         selected_stat = stats_panel.menu_items[stats_panel.selected_index].lower()  # Convert to lowercase to match attributes
 
         # Use max_hp as the allocation pool
-        if player_stats.max_hp > 0:  # Ensure there's at least 1 point to allocate
+        if player_stats.max_hp > 1:  # Ensure there's at least 1 point to allocate
             if hasattr(equipped_stats, selected_stat) and (selected_stat != "hp" and selected_stat != "basepow" and selected_stat != "charges"):  # Ensure the stat exists
                 setattr(equipped_stats, selected_stat, getattr(equipped_stats, selected_stat) + 1)
                 player_stats.max_hp -= 1  # Reduce allocation pool

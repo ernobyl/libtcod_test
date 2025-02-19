@@ -5,6 +5,7 @@ from tcod.console import Console
 import tcod
 
 from scripts.entity.entity import Entity
+from scripts.entity.entity import EnemyType
 from scripts.map.game_map import GameMap
 from scripts.player.input_handlers import EventHandler
 from scripts.entity import stats
@@ -28,14 +29,26 @@ class Engine:
     def spawn_entities(self, num_enemies: int):
         """Spawn a set number of enemies randomly on the map."""
         for _ in range(num_enemies):
-            enemy_stats = stats.enemy.copy()  # Ensure unique stats per enemy
+            enemy_stats = stats.enemy_melee.copy()  # Ensure unique stats per enemy
             npc = Entity(
                 random.randint(0, self.game_map.width - 1),
                 random.randint(0, self.game_map.height - 1),
-                "E", "enemy", (0, 255, 0), False, enemy_stats
+                "E", "enemy", (0, 255, 0), False, enemy_stats,
+                type=EnemyType.MELEE
             )
             npc.engine = self  # Link entity to engine
             self.entities.append(npc)  # Add enemy to game
+        if self.level > 2:
+            for _ in range(self.level - 2):
+                enemy_stats = stats.enemy_ranged.copy()  # Ensure unique stats per enemy
+                npc = Entity(
+                    random.randint(0, self.game_map.width - 1),
+                    random.randint(0, self.game_map.height - 1),
+                    "R", "enemy", (200, 255, 0), False, enemy_stats,
+                    type=EnemyType.RANGED
+                )
+                npc.engine = self  # Link entity to engine
+                self.entities.append(npc)  # Add enemy to game
 
     level = 1
     def handle_events(self, events: Iterable[Any]) -> None:

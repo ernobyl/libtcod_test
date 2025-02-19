@@ -29,6 +29,8 @@ class EventHandler(tcod.event.EventDispatch[Action]):
                 self.engine.stats_panel.selected_index += 1
                 if self.engine.stats_panel.selected_index >= len(self.engine.stats_panel.menu_items):
                     self.engine.stats_panel.selected_index = 0  # Wrap around
+            elif key == tcod.event.KeySym.ESCAPE:
+                self.engine.stats_panel.toggle
             if not any(entity for entity in self.engine.entities if not entity.pc and entity.alive):
                 if key == tcod.event.KeySym.KP_PLUS:
                     action = StatsAllocationAction()
@@ -62,6 +64,9 @@ class EventHandler(tcod.event.EventDispatch[Action]):
             action = StatsAction()
 
         if key == tcod.event.KeySym.ESCAPE:
-            action = EscapeAction()
+            if self.engine.stats_panel.visible:
+                self.engine.stats_panel.toggle()
+            else:
+                action = EscapeAction()
         
         return action

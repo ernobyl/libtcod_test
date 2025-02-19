@@ -31,4 +31,6 @@ class Stats:
 
 base_player = Stats(max_hp=10, hp=10, basepow=0, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=0, aoe=0)
 
-enemy = Stats(max_hp=50, hp=50, basepow=5, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=0, aoe=0)
+enemy_melee = Stats(max_hp=50, hp=50, basepow=5, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=0, aoe=0)
+
+enemy_ranged = Stats(max_hp=50, hp=50, basepow=2, addpow=0, slots=0, max_charges=0, charges=0, effect_duration=0, max_distance=7, aoe=0)

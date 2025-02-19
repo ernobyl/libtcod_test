@@ -18,4 +18,4 @@ class Equipment:
         self.max_distance = max_distance
         self.aoe = aoe
 
-r_pouch = Equipment(basepow=20, addpow=5, slots=1, max_charges=6, charges=6, effect_duration=0, max_distance=3, aoe=0)
+r_pouch = Equipment(basepow=20, addpow=5, slots=1, max_charges=8, charges=8, effect_duration=0, max_distance=3, aoe=0)
