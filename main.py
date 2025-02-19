@@ -2,7 +2,7 @@ import tcod
 from scripts.engine import Engine
 from scripts.player.input_handlers import EventHandler
 from scripts.entity.entity import Entity
-from scripts.map.game_map import GameMap
+from scripts.map import game_map
 from scripts.entity import stats
 from scripts import equipment
 from scripts import engine as dimensions
@@ -17,6 +17,10 @@ def main() -> None:
     map_width = 80
     map_height = 45
 
+    room_max_size = 18
+    room_min_size = 8
+    max_rooms = 30
+
     tileset = tcod.tileset.load_tilesheet(
         "assets/dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
@@ -26,9 +30,16 @@ def main() -> None:
     player = Entity(int(map_width / 2), int(map_height / 2), "@", "player", (255, 255, 255), True, stats.base_player)
     entities = [player]
 
-    game_map = GameMap(map_width, map_height)
+    map = game_map.generate_dungeon(
+        max_rooms=max_rooms,
+        room_min_size=room_min_size,
+        room_max_size=room_max_size,
+        map_width=map_width,
+        map_height=map_height,
+        player=player
+    )
 
-    engine = Engine(console=root_console, entities=entities, event_handler=None, game_map=game_map, player=player, context=None)
+    engine = Engine(console=root_console, entities=entities, event_handler=None, game_map=map, player=player, context=None)
     event_handler = EventHandler(engine)
     engine.event_handler = event_handler
     player.engine = engine
@@ -36,6 +47,7 @@ def main() -> None:
 
     #testing equipment
     runepouch = equipment.r_pouch
+    #magedisc = equipment.m_disc
     player.equip_item(runepouch)
     player.print_stats()
 

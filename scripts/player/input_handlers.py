@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from scripts.engine import Engine
 
 from scripts.player.actions import Action, EscapeAction, MovementAction, TargetingAction, AttackAction, StatsAction, StatsAllocationAction, StatsDeallocationAction
+from scripts.player.actions import DetonateAction, RestAction
 
 class EventHandler(tcod.event.EventDispatch[Action]):
     def __init__(self, engine: Engine):
@@ -53,9 +54,14 @@ class EventHandler(tcod.event.EventDispatch[Action]):
                 action = MovementAction(dx=0, dy=1)
             elif key == tcod.event.KeySym.KP_3:
                 action = MovementAction(dx=1, dy=1)
+            elif key == tcod.event.KeySym.KP_5:
+                action == RestAction() # why does this not work
 
             elif key == tcod.event.KeySym.f:
                 action = TargetingAction(self.engine.player.stats.max_distance)
+
+            elif key == tcod.event.KeySym.d:
+                action = DetonateAction()
             
             elif key == tcod.event.KeySym.SPACE:
                 action = AttackAction()

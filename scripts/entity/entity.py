@@ -107,7 +107,12 @@ class Entity:
 
         next_x = self.x + dx
         next_y = self.y + dy
-        if any(entity for entity in self.engine.entities if entity.x == next_x and entity.y == next_y and not entity.pc and entity.alive):
+        if any(
+            entity for entity in self.engine.entities
+            if entity.x == next_x and entity.y == next_y
+            and not entity.pc and entity.alive
+            and not isinstance(entity, Projectile)
+        ):
             self.find_alternative_move()  # Find another way
         elif player.x == next_x and player.y == next_y:  # Attack player instead of moving
             self.hostile_attack()
@@ -135,7 +140,12 @@ class Entity:
         next_x = self.x + dx
         next_y = self.y + dy
 
-        if any(entity for entity in self.engine.entities if entity.x == next_x and entity.y == next_y and not entity.pc and entity.alive):
+        if any(
+            entity for entity in self.engine.entities
+            if entity.x == next_x and entity.y == next_y
+            and not entity.pc and entity.alive
+            and not isinstance(entity, Projectile)
+        ):
             self.find_alternative_move()  # Find another way
         elif self.engine.game_map.tiles["walkable"][next_x, next_y]:  # Move normally
             self.move(dx, dy)
@@ -246,15 +256,45 @@ class Entity:
         # Apply damage to entities in the target area
         self.apply_aoe_damage(target_x, target_y)
         self.engine.player.equipment.charges -= 1
-        print(self.engine.player.equipment.charges)
+        print(f"Charges: {self.engine.player.equipment.charges} / {self.engine.player.equipment.max_charges}")
+
+    def throw_disc(self, target_x: int, target_y: int):
+        if self.engine.player.equipment.charges <= 0:
+            return None
+        max_distance = self.stats.max_distance
+        if self.distance_to_tile(target_x, target_y) > max_distance:
+            print("Target is out of range!")
+            return
+        
+        if not self.has_line_of_sight(target_x, target_y):
+            print("No clear line of sight!")
+            return
+        
+        print(f"{self.name} throws a disc at ({target_x}, {target_y})!")
+        line = list(tcod.los.bresenham((self.x, self.y), (target_x, target_y)))
+        
+        for x, y in line[1:]:  # Skip starting position
+            self.engine.console.print(x, y, "o", fg=(255, 0, 255))  # projectile color
+            self.engine.context.present(self.engine.console)
+            time.sleep(0.05)  # Short delay for animation
+            self.engine.console.print(x, y, " ")  # Erase previous frame
+            self.engine.context.present(self.engine.console)
+
+        # Create a Projectile instance at the target location
+        disc = Projectile(target_x, target_y, "Thrown Disc", (255, 0, 255), self.engine)
+        # Add it to the game world
+        self.engine.entities.append(disc)
+        self.engine.player.equipment.charges -= 1
+        print(f"Charges: {self.engine.player.equipment.charges} / {self.engine.player.equipment.max_charges}")
+
 
     def apply_aoe_damage(self, target_x: int, target_y: int):
-        """Applies damage to all enemies within the AOE radius."""
+        """Applies damage to all enemies within the AOE radius and creates a flash effect."""
         aoe_radius = self.stats.aoe
         affected_tiles = []
 
         for entity in self.engine.entities:
-            if not entity.pc and entity.alive:  # Only damage enemies
+            if not entity.pc and entity.alive and not isinstance(entity, Projectile):  # Only damage enemies
                 if self.distance_to_tile(entity.x, entity.y, target_x, target_y) <= aoe_radius:
                     damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
                     entity.take_damage(damage)
@@ -266,20 +306,35 @@ class Entity:
                 if self.distance_to_tile(x, y, target_x, target_y) <= aoe_radius:
                     affected_tiles.append((x, y))
 
-        # Flash all affected tiles
+        # Create a temporary console for flashing effect
+        effect_console = tcod.console.Console(self.engine.console.width, self.engine.console.height, order="F")
+
         for _ in range(3):  # Repeat flash 3 times
+            effect_console.clear()  # Clear effect console (not the main console)
+
+            # Redraw the game map and entities onto effect_console
+            self.engine.game_map.render(effect_console)
+            for entity in self.engine.entities:
+                effect_console.print(entity.x, entity.y, entity.char, fg=entity.color)
+
+            # Flash background color (purple)
             for x, y in affected_tiles:
-                self.engine.console.bg[x, y] = (100, 50, 220)  # magic 'splosion
+                effect_console.bg[x, y] = (100, 50, 220)  # Flash color effect
+
+            effect_console.blit(self.engine.console)  # Copy effect to main console
             self.engine.context.present(self.engine.console)
             time.sleep(0.05)
 
+            # Show attack sparks
             self.attack_sparks(target_x, target_y)
 
+            # Reset background color
             for x, y in affected_tiles:
-                self.engine.console.bg[x, y] = (0, 0, 0)  # Reset
+                effect_console.bg[x, y] = (0, 0, 0)  # Clear effect
+
+            effect_console.blit(self.engine.console)  # Copy cleared effect to main console
             self.engine.context.present(self.engine.console)
             time.sleep(0.05)
-
 
     def distance_to_tile(self, tile_x: int, tile_y: int, origin_x=None, origin_y=None) -> float:
         """Calculate distance from a tile (or entity) to another tile."""
@@ -325,4 +380,44 @@ class Entity:
             self.engine.context.present(self.engine.console)
             time.sleep(0.05)  # Short delay to animate
 
+    def render_hostile_range(self):
+        """Draws a targeting circle around ranged enemies to show their attack range."""
+        if not self.alive or self.pc or not self.type == EnemyType.RANGED:  # Only for alive enemies
+            return
 
+        max_range = self.stats.max_distance  # Get the enemy's max attack range
+
+        for x in range(self.engine.game_map.width):
+            for y in range(self.engine.game_map.height):
+                if int(self.distance_to_tile(x, y, self.x, self.y)) == max_range - 1:
+                    self.engine.console.bg[x, y] = (95, 25, 25)  # targeting ring color
+
+
+
+class Projectile(Entity):
+    """A projectile that remains at its target location until detonated."""
+    
+    def __init__(self, x: int, y: int, name: str, color: Tuple[int, int, int], engine: Engine):
+        super().__init__(
+            x=x,
+            y=y,
+            char="o",  # Projectile symbol
+            name=name,
+            color=color,
+            pc=False,  # Not a player-controlled entity
+            stats=None,  # Projectiles don’t need full stats
+            equipment=None,
+            alive=True,
+            engine=engine
+        )
+        self.engine = engine
+        self.stats = self.engine.player.stats
+
+
+    def detonate(self):
+        """Detonates the projectile and applies area damage."""
+        print(f"{self.name} at ({self.x}, {self.y}) explodes!")
+        self.apply_aoe_damage(self.x, self.y)  # Explosion effect
+        self.engine.render(self.engine.context)
+        self.engine.entities.remove(self)  # Remove projectile from game
+        self.engine.player.equipment.charges = self.engine.player.equipment.max_charges

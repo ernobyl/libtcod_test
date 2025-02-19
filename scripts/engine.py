@@ -4,9 +4,11 @@ from tcod.context import Context
 from tcod.console import Console
 import tcod
 
-from scripts.entity.entity import Entity
+from scripts.entity.entity import Entity, Projectile
 from scripts.entity.entity import EnemyType
 from scripts.map.game_map import GameMap
+from scripts.map import game_map as mapgen
+from scripts.map import tile_types
 from scripts.player.input_handlers import EventHandler
 from scripts.entity import stats
 import random
@@ -37,6 +39,9 @@ class Engine:
                 type=EnemyType.MELEE
             )
             npc.engine = self  # Link entity to engine
+            if not self.game_map.tiles["walkable"][npc.x, npc.y]: # create path out from solid wall
+                for x, y in mapgen.tunnel_between([npc.x, npc.y], [self.player.x, self.player.y]):
+                    self.game_map.tiles[x, y] = tile_types.floor
             self.entities.append(npc)  # Add enemy to game
         if self.level > 2:
             for _ in range(self.level - 2):
@@ -48,6 +53,9 @@ class Engine:
                     type=EnemyType.RANGED
                 )
                 npc.engine = self  # Link entity to engine
+                if not self.game_map.tiles["walkable"][npc.x, npc.y]: # create path out from solid wall
+                    for x, y in mapgen.tunnel_between([npc.x, npc.y], [self.player.x, self.player.y]):
+                        self.game_map.tiles[x, y] = tile_types.floor
                 self.entities.append(npc)  # Add enemy to game
 
     level = 1
@@ -64,7 +72,7 @@ class Engine:
 
         if not any(entity for entity in self.entities if not entity.pc and entity.alive):
             self.level += 1
-            print(f"You sure SLAMMED them! Moving on to level {self.level}.")
+            print(f"Thou hast verily SLAMMED thine enemies! Go forth to level {self.level}, o' brave one.")
             self.levelup()
             
     def render(self, context: tcod.context.Context) -> None:
@@ -72,6 +80,7 @@ class Engine:
         self.game_map.render(self.console)
 
         for entity in self.entities:
+            entity.render_hostile_range()  # Draw targeting circles
             self.console.print(entity.x, entity.y, entity.char, fg=entity.color)
         
         if self.stats_panel and self.stats_panel.visible:

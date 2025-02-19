@@ -31,5 +31,5 @@ def new_tile(
     return np.array((walkable, transparent, dark), dtype=tile_dt)
 
 
-floor = new_tile(walkable=True, transparent=True, dark=(ord("."), (150, 150, 150), (0, 0, 0)))
-wall = new_tile(walkable=False, transparent=False, dark=(ord("#"), (255, 255, 255), (50, 50, 50)))
+floor = new_tile(walkable=True, transparent=True, dark=(ord("."), (100, 100, 100), (0, 0, 0)))
+wall = new_tile(walkable=False, transparent=False, dark=(ord("#"), (230, 230, 230), (50, 50, 50)))

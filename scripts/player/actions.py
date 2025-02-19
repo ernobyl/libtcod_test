@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from scripts.engine import Engine
     from scripts.entity.entity import Entity
 
+from scripts.entity.entity import Projectile
+
 class Action:
      def perform(self, engine: Engine, entity: Entity) -> None:
         raise NotImplementedError()
@@ -18,6 +20,11 @@ class Action:
 class EscapeAction(Action):
     def perform(self, engine: Engine, entity: Entity) -> None:
         raise SystemExit()
+    
+class RestAction(Action):
+    def perform(self, engine: Engine, entity: Entity) -> None:
+       print("You rest.")
+       return
 
 class MovementAction(Action):
     def __init__(self, dx: int, dy: int):
@@ -40,6 +47,14 @@ class MovementAction(Action):
 class AttackAction(Action):
     def perform(self, engine: Engine, entity: Entity) -> None:
         pass
+class DetonateAction(Action):
+    def perform(self, engine: Engine, entity: Entity) -> None:
+        """Detonate the nearest projectile (if any exist)."""
+
+        for projectile in list(engine.entities):  # Iterate safely over a copy
+            if isinstance(projectile, Projectile):  # Only detonate projectiles
+                projectile.detonate()
+                #return  # Stop after detonating one projectile
 
 class StatsAction(Action):
     def perform(self, engine: Engine, entity: Entity) -> None:
@@ -124,7 +139,10 @@ class TargetingAction(Action):
                     return None
                 # Confirm selection when Space is pressed
                 if isinstance(action, AttackAction):
-                    return engine.player.ranged_attack(cursor_x, cursor_y)  # Call attack
+                    if engine.player.equipment.name == "Rune pouch":
+                        return engine.player.ranged_attack(cursor_x, cursor_y)  # Call attack
+                    elif engine.player.equipment.name == "Mage's discus":
+                        return engine.player.throw_disc(cursor_x, cursor_y)
                 prev_x = cursor_x
                 prev_y = cursor_y
                 # Move cursor
