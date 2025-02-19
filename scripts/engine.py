@@ -80,8 +80,12 @@ class Engine:
         self.game_map.render(self.console)
 
         for entity in self.entities:
-            entity.render_hostile_range()  # Draw targeting circles
-            self.console.print(entity.x, entity.y, entity.char, fg=entity.color)
+            if isinstance(entity, Projectile):
+                self.console.print(entity.x, entity.y, entity.char, fg=entity.color)
+        for entity in self.entities:
+            entity.render_hostile_range()
+            if not isinstance(entity, Projectile):
+                self.console.print(entity.x, entity.y, entity.char, fg=entity.color)
         
         if self.stats_panel and self.stats_panel.visible:
             self.stats_panel.render(self)

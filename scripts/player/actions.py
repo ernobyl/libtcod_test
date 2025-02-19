@@ -23,7 +23,6 @@ class EscapeAction(Action):
     
 class RestAction(Action):
     def perform(self, engine: Engine, entity: Entity) -> None:
-       print("You rest.")
        return
 
 class MovementAction(Action):
@@ -73,6 +72,8 @@ class StatsAllocationAction(Action):
         if player_stats.max_hp > 1:  # Ensure there's at least 1 point to allocate
             if hasattr(equipped_stats, selected_stat) and (selected_stat != "hp" and selected_stat != "basepow" and selected_stat != "charges"):  # Ensure the stat exists
                 setattr(equipped_stats, selected_stat, getattr(equipped_stats, selected_stat) + 1)
+                if selected_stat == "aoe":
+                    player_stats.max_hp -= 1  # Reduce allocation pool
                 player_stats.max_hp -= 1  # Reduce allocation pool
                 engine.player.update_equipped()
                 engine.player.print_stats()
@@ -100,6 +101,8 @@ class StatsDeallocationAction(Action):
             
             if stat_value > 0:  # Check if value is greater than 0
                 setattr(equipped_stats, selected_stat, stat_value - 1)  # Reduce stat
+                if selected_stat == "aoe":
+                    player_stats.max_hp += 1
                 player_stats.max_hp += 1  # Increase allocation pool
 
                 engine.player.update_equipped()  # Reapply equipment stats

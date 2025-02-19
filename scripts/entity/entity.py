@@ -295,7 +295,9 @@ class Entity:
 
         for entity in self.engine.entities:
             if not entity.pc and entity.alive and not isinstance(entity, Projectile):  # Only damage enemies
-                if self.distance_to_tile(entity.x, entity.y, target_x, target_y) <= aoe_radius:
+                if (self.distance_to_tile(entity.x, entity.y, target_x, target_y) <= aoe_radius
+                and self.has_line_of_sight_target(entity.x, entity.y, target_x, target_y)
+                ):
                     damage = int(self.stats.basepow + (self.stats.addpow / 100 * self.stats.basepow))
                     entity.take_damage(damage)
                     print(f"{entity.name} takes {damage} damage!")
@@ -303,7 +305,9 @@ class Entity:
         # Gather affected tiles
         for x in range(self.engine.game_map.width):
             for y in range(self.engine.game_map.height):
-                if self.distance_to_tile(x, y, target_x, target_y) <= aoe_radius:
+                if (self.distance_to_tile(x, y, target_x, target_y) <= aoe_radius
+                and self.has_line_of_sight_target(x, y, target_x, target_y)
+                ):
                     affected_tiles.append((x, y))
 
         # Create a temporary console for flashing effect
@@ -347,6 +351,17 @@ class Entity:
     def has_line_of_sight(self, target_x: int, target_y: int) -> bool:
         """Check if there's an unobstructed line of sight (LOS) to a tile."""
         line = list(tcod.los.bresenham((self.x, self.y), (target_x, target_y)))
+
+        # Ensure all tiles between player and target are walkable
+        for x, y in line[1:-1]:  # Exclude the first (self) and last (target) positions
+            if not self.engine.game_map.tiles["walkable"][x, y]:
+                return False  # LOS is blocked
+
+        return True  # LOS is clear
+
+    def has_line_of_sight_target(self, origin_x: int, origin_y: int, target_x: int, target_y: int) -> bool:
+        """Check if there's an unobstructed line of sight (LOS) to a tile."""
+        line = list(tcod.los.bresenham((origin_x, origin_y), (target_x, target_y)))
 
         # Ensure all tiles between player and target are walkable
         for x, y in line[1:-1]:  # Exclude the first (self) and last (target) positions

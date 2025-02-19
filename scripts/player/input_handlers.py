@@ -55,7 +55,7 @@ class EventHandler(tcod.event.EventDispatch[Action]):
             elif key == tcod.event.KeySym.KP_3:
                 action = MovementAction(dx=1, dy=1)
             elif key == tcod.event.KeySym.KP_5:
-                action == RestAction() # why does this not work
+                action = RestAction()
 
             elif key == tcod.event.KeySym.f:
                 action = TargetingAction(self.engine.player.stats.max_distance)
